@@ -19,14 +19,42 @@ const app = express();
 const PORT = process.env.PORT || 4000;
 
 /* =========================
-   DATABASE & CLOUDINARY
+    DATABASE & CLOUDINARY
 ========================= */
+// Top-level await for DB connection
 await connectDB();
 await connectCloudinary();
 
 /* =========================
-   STRIPE WEBHOOK (RAW BODY)
-   ⚠️ MUST BE BEFORE express.json()
+    CORS CONFIGURATION
+    (Must be defined early)
+========================= */
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://green-cart-grocery-mern-with-razorp.vercel.app" // आपका फिक्स्ड URL
+];
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('CORS Policy: This origin is not allowed'));
+      }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+  })
+);
+
+/* =========================
+    STRIPE WEBHOOK (RAW BODY)
+    ⚠️ MUST BE BEFORE express.json()
 ========================= */
 app.post(
   "/stripe",
@@ -35,31 +63,16 @@ app.post(
 );
 
 /* =========================
-   CORS CONFIGURATION
-========================= */
-const allowedOrigins = [
-  "http://localhost:5173",
-  "https://green-cart-grocery-mern-with-razorpay-8z7uk06ek.vercel.app"
-];
-
-app.use(
-  cors({
-    origin: allowedOrigins,
-    credentials: true
-  })
-);
-
-/* =========================
-   MIDDLEWARES
+    MIDDLEWARES
 ========================= */
 app.use(express.json());
 app.use(cookieParser());
 
 /* =========================
-   ROUTES
+    ROUTES
 ========================= */
 app.get("/", (req, res) => {
-  res.send("API is Working");
+  res.send("API is Working with CORS Fixed");
 });
 
 app.use("/api/user", userRouter);
@@ -70,7 +83,7 @@ app.use("/api/address", addressRouter);
 app.use("/api/order", orderRouter);
 
 /* =========================
-   START SERVER
+    START SERVER
 ========================= */
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
